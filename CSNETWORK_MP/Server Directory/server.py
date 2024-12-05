@@ -45,20 +45,29 @@ def handle_client(conn, addr):
                     else:
                         conn.send("Error: Registration failed. Handle or alias already exists.".encode(FORMAT))
             elif cmd_key[0] == "/store":
-                # Implement logic for the /store command
-                file = open(cmd_key[1], "rb")
-                file_size = os.path.getsize(cmd_key[1])
-                
-                conn.send(cmd_key[1].encode())
-                conn.send(str(file_size).encode())
-                
-                data = file.read()
-                conn.sendall(data)
-                conn.send(b"<END>")
-                
-                file.close()
-    
-                conn.send("/store command received.".encode(FORMAT)) # send to client
+                try:
+                    # Open the file in binary read mode
+                    with open(cmd_key[1], "rb") as file:
+                        file_size = os.path.getsize(cmd_key[1])
+                        
+                        # Send the file name and size
+                        conn.send(cmd_key[1].encode() + b"\n")
+                        conn.send(str(file_size).encode() + b"\n")
+                        
+                        # Send the file in chunks
+                        while chunk := file.read(4096):
+                            conn.sendall(chunk)
+                    
+                    # Optionally send a termination marker
+                    conn.send(b"<END>")
+                    conn.send(f"Uploaded: {cmd_key[1]}".encode(FORMAT))
+                except FileNotFoundError:
+                    print("Error: File not Found.")
+                    conn.send("Error: File not Found.".encode(FORMAT))
+                except Exception:
+                    print("Error: An unexpected error occured.")
+                    conn.send("Error: An unexpected error occured.".encode(FORMAT))
+
             elif cmd_key[0] == "/dir":
                 path = Path.cwd() / "CSNETWORK_MP" / "Server Directory"
                 print(f"Server current working directory: {path}")  # Debugging
@@ -74,26 +83,25 @@ def handle_client(conn, addr):
                     conn.send("No files found in the current directory.".encode(FORMAT))
                 
             elif cmd_key[0] == "/get":
-                # Implement logic for the /get command
                 file_name = conn.recv(1024).decode()
                 file_size = int(conn.recv(1024).decode())
                 
                 try:
                     open(file_name, "wb")
-                 # Initialize progress bar
+
                     progress_bar = tqdm(unit="B", unit_scale=True, unit_divisor=1024, total=file_size, desc=f"Downloading {file_name}")
 
                     bytes_received = 0
 
                     while bytes_received < file_size:
-                        # Receive file data in chunks
+
+                        #recieve in chunks
                         data = conn.recv(1024)
                         if not data:
                             break
                         file.write(data)
                         bytes_received += len(data)
 
-                        # Update progress bar
                         progress_bar.update(len(data))
                     
                     progress_bar.close()
@@ -103,9 +111,6 @@ def handle_client(conn, addr):
                 except Exception:
                     print("Error: An unexpected error occured.")
                     conn.send("Error: An unexpected error occured.".encode(FORMAT))
-                        
-                conn.send("/get command received.".encode(FORMAT)) # send to client
-
             print(f"{addr}: {msg}")  # Optional, remove in production for cleaner output
 
     conn.close()
