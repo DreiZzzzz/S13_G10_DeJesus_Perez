@@ -6,10 +6,6 @@ FORMAT = 'utf-8'
 
 SERVER = socket.gethostbyname(socket.gethostname())  # for checking
 
-commands_dict = {
-    "/join" : ""
-}
-
 def create_socket():
     return socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
