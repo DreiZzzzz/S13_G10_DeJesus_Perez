@@ -44,12 +44,15 @@ def handle_client(conn, addr):
                         conn.send("Error: Registration failed. Handle or alias already exists.".encode(FORMAT))
             elif cmd_key[0] == "/store":
                 # Implement logic for the /store command
+
                 conn.send("/store command received.".encode(FORMAT)) # send to client
             elif cmd_key[0] == "/dir":
                 # Implement logic for the /dir command
+
                 conn.send("/dir command received.".encode(FORMAT)) # send to client
             elif cmd_key[0] == "/get":
                 # Implement logic for the /get command
+
                 conn.send("/get command received.".encode(FORMAT)) # send to client
 
             print(f"{addr}: {msg}")  # Optional, remove in production for cleaner output
@@ -66,5 +69,6 @@ def start():
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}") # prints current active connection/s
 
+print("\nSERVER VIEW")
 start()
         
