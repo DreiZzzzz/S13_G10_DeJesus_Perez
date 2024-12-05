@@ -76,24 +76,33 @@ def handle_client(conn, addr):
             elif cmd_key[0] == "/get":
                 # Implement logic for the /get command
                 file_name = conn.recv(1024).decode()
-                file_size = conn.recv(1024).decode()
+                file_size = int(conn.recv(1024).decode())
                 
-                file = open(file_name, "wb")
-                file_bytes = bytearray()
-                done = False
-                
-                progress_bar = tqdm,tqdm(unit="B", unit_scale = True, unit_divisor=1000, total = int(file_size))
-                
-                while not done:
-                    data = conn.recv(1024)
-                    if data == file_size:
-                        done = True
-                    else:
-                        file_bytes += data
-                    progress_bar.update(1024)
-                
-                file.write(file_bytes)
-                file.close()
+                try:
+                    open(file_name, "wb")
+                 # Initialize progress bar
+                    progress_bar = tqdm(unit="B", unit_scale=True, unit_divisor=1024, total=file_size, desc=f"Downloading {file_name}")
+
+                    bytes_received = 0
+
+                    while bytes_received < file_size:
+                        # Receive file data in chunks
+                        data = conn.recv(1024)
+                        if not data:
+                            break
+                        file.write(data)
+                        bytes_received += len(data)
+
+                        # Update progress bar
+                        progress_bar.update(len(data))
+                    
+                    progress_bar.close()
+                except FileNotFoundError:
+                    print("Error: File not Found in the server.")
+                    conn.send("Error: File not Found in the server.".encode(FORMAT))
+                except Exception:
+                    print("Error: An unexpected error occured.")
+                    conn.send("Error: An unexpected error occured.".encode(FORMAT))
                         
                 conn.send("/get command received.".encode(FORMAT)) # send to client
 
