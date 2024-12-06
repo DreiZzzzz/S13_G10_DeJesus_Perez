@@ -67,15 +67,22 @@ def handle_client(conn, addr):
                     file_path = to_path / file_name
 
                     # Assuming cmd_key is a list
-                    temp = "".join(cmd_key[2:])  # Joins the elements from index 2 onward into a string
+                    temp = " ".join(cmd_key[2:])  # Joins the elements from index 2 onward into a string
 
                     # Get the current date and time
                     current_time = datetime.now()
                     formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    file_name, file_extension = os.path.splitext(file_name)
+                    
+                    if file_extension == ".txt":
+                        with open(file_path, "w") as file:
+                            file.write(temp)
+                    else:
+                        temp = temp.encode(FORMAT)
+                        with open(file_path, "wb") as file:
+                            file.write(temp)
 
-                    with open(file_path, "w") as file:
-                        file.write(temp)
-                    file.close()
                     # Send the message with the current date and time
                     conn.send(f"{current_client} {formatted_time}:\nUploaded\n{file_name}".encode(FORMAT))
                 else:
@@ -100,14 +107,17 @@ def handle_client(conn, addr):
                 path = Path.cwd() / "CSNETWORK_MP" / "Server Directory"
                 file_path = path / cmd_key[1]
                 try:
-                    with open(file_path, 'rb') as file:
-                        while chunk := file.read(1024):
-                            conn.send(chunk)
+                    with open(file_path, "rb") as file:
+                        data = file.read()
                 except FileNotFoundError:
                     print("File not found.")
-                    conn.send(b"Error: File not found.")
+                    conn.send("Error: File not found.")
                 finally:
-                    conn.send(b"EOF")
+                    msg_length = len(data)
+                    send_length = str(msg_length).encode(FORMAT)
+                    send_length += b' ' * (HEADER - len(send_length))
+                    conn.send(send_length)
+                    conn.send(data)
                 
                     
             print(f"{addr}: {msg}")  # Optional, remove in production for cleaner output
