@@ -2,6 +2,8 @@
 # Perez, Patrick Hans A.
 
 import socket
+import os
+from pathlib import Path
 
 HEADER = 512
 FORMAT = 'utf-8'
@@ -47,6 +49,16 @@ def main():
     client_send_filename = ""
     client_receive_filename = ""
 
+    os.chdir(r"C:\Users\ZiaZandre\Documents\GitHub\CSNETWK_MachineProject") # change before running 
+
+    from_path = Path.cwd() / "CSNETWORK_MP" / "Client Directory"
+    if not from_path.exists():
+        print(f"Error: Directory does not exist: {from_path}")
+        return
+
+    from_files = list(from_path.glob("*"))  # List all files and directories
+    from_file_names = [f.name for f in from_files if f.is_file()]  # Only include file names
+
     try:
         while True:
             server_response = ""
@@ -90,7 +102,49 @@ def main():
                 else:
                     print("Error: Disconnection failed. Please connect to the server first.")
 
-            elif cmd_key[0] in ["/store", "/dir", "/get"]:
+            elif cmd_key[0] == "/store":
+                if is_server_active:
+                    if is_user_registered:
+                        if len(cmd_key) == 2:  # Assuming /store requires one parameter
+                            file_name = cmd_key[1]
+                            file_path = from_path / file_name
+
+                            if file_name not in from_file_names:
+                                print("Error: File not found.")
+                            else:
+                                print("Existing! Remove After Testing")
+
+                                try:
+                                    # Open and read the file content
+                                    with open(file_path, "r") as file:
+                                        data = file.read()
+
+                                    # Create the message to send (filename + file data)
+                                    temp = f"{file_name}\n{data}"
+                                    print(temp) # remove after testing
+                                    # Send the data to the server
+                                    server_response = send_to_server(client, temp)  # Send the full data (filename + content)
+
+                                    if server_response is None:  # Server is unreachable
+                                        is_server_active = False
+                                        client.close()  # Close the socket
+                                        client = create_socket()  # Recreate the socket for future use
+                                        print("Error: Server connection lost.")
+                                    else:
+                                        print(server_response)
+                                    file.close()
+                                except FileNotFoundError:
+                                    print(f"Error: The file {file_name} was not found.")
+                                except Exception as e:
+                                    print(f"Error while reading the file: {e}")
+                        else:
+                            print("Error: Command parameters do not match or are not allowed.")
+                    else:
+                        print("Error: User is not yet registered.")
+                else:
+                    print("Error: Please connect to the server first to use this command.")
+
+            elif cmd_key[0] == "/dir":
                 if is_server_active:
                     if is_user_registered:
                         server_response = send_to_server(client, prompt)
@@ -105,8 +159,33 @@ def main():
                         print("Error: User is not yet registered.")
                 else:
                     print("Error: Please connect to the server first to use this command.")
-                    if cmd_key[0] in ["/store", "/get"] and len(cmd_key) != 2:
-                        print("Error: Command parameters do not match or are not allowed.")
+
+            elif cmd_key[0] == "/get":
+                if is_server_active:
+                    if is_user_registered:
+                        if len(cmd_key) == 2:  # Assuming /get requires one parameter
+                            server_response = send_to_server(client, prompt)
+                            if server_response is None:  # Server is unreachable
+                                is_server_active = False
+                                client.close()  # Close the socket
+                                client = create_socket()  # Recreate the socket for future use
+                                print("Error: Server connection lost.")
+                            else:
+                                while True:
+                                    data = client.recv(1024)
+                                    if data == b"EOF":  # End of file signal
+                                        break
+                                    if data.startswith(b"ERROR"):  # Handle errors from server
+                                        print(data.decode())
+                                        break
+                                    file.write(data)
+                                print(server_response)
+                        else:
+                            print("Error: Command parameters do not match or are not allowed.")
+                    else:
+                        print("Error: User is not yet registered.")
+                else:
+                    print("Error: Please connect to the server first to use this command.")
 
             elif cmd_key[0] == "/register":
                 if len(cmd_key) != 2:
@@ -125,9 +204,10 @@ def main():
 
             elif cmd_key[0] == "/?":
                 display_commands()
-
+                
             else:
                 print("Error: Command not found.")
+
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 

@@ -1,12 +1,11 @@
 # De Jesus, Andrei Zarmin D. 
 # Perez, Patrick Hans A.
 
-
+from datetime import datetime
 import socket
 import threading
 import os
 from pathlib import Path
-import tqdm
 
 HEADER = 512
 FORMAT = 'utf-8'
@@ -35,6 +34,7 @@ def handle_client(conn, addr):
 
             if cmd_key[0] == "/join":
                 conn.send("Connection to the File Exchange Server is successful!".encode(FORMAT))
+
             elif cmd_key[0] == "/leave":
                 if len(cmd_key) == 1:
                     connected = False
@@ -43,6 +43,7 @@ def handle_client(conn, addr):
                         list_client_names.remove(current_client)
                 else:
                     conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
+
             elif cmd_key[0] == "/register":
                 if len(cmd_key) == 2 and cmd_key[1]:
                     temp_client_name = cmd_key[1]
@@ -54,29 +55,32 @@ def handle_client(conn, addr):
                         conn.send("Error: Registration failed. Handle or alias already exists.".encode(FORMAT))
                 else:
                     conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
+
             elif cmd_key[0] == "/store":
-                try:
-                    # Open the file in binary read mode
-                    with open(cmd_key[1], "rb") as file:
-                        file_size = os.path.getsize(cmd_key[1])
-                        
-                        # Send the file name and size
-                        conn.send(cmd_key[1].encode() + b"\n")
-                        conn.send(str(file_size).encode() + b"\n")
-                        
-                        # Send the file in chunks
-                        while chunk := file.read(4096):
-                            conn.sendall(chunk)
-                    
-                    # Optionally send a termination marker
-                    conn.send(b"<END>")
-                    conn.send(f"Uploaded: {cmd_key[1]}".encode(FORMAT))
-                except FileNotFoundError:
-                    print("Error: File not Found.")
-                    conn.send("Error: File not Found.".encode(FORMAT))
-                except Exception:
-                    print("Error: An unexpected error occured.")
-                    conn.send("Error: An unexpected error occured.".encode(FORMAT))
+                # Define the source and destination paths
+                to_path = Path.cwd() / "CSNETWORK_MP" / "Server Directory"
+
+                store_prompt = cmd_key[0:2]  # not including 2 onwards
+
+                if len(store_prompt) >= 2:
+                    file_name = cmd_key[1]
+                    file_path = to_path / file_name
+
+                    # Assuming cmd_key is a list
+                    temp = "".join(cmd_key[2:])  # Joins the elements from index 2 onward into a string
+
+                    # Get the current date and time
+                    current_time = datetime.now()
+                    formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+                    with open(file_path, "w") as file:
+                        file.write(temp)
+                    file.close()
+                    # Send the message with the current date and time
+                    conn.send(f"{current_client} {formatted_time}:\nUploaded\n{file_name}".encode(FORMAT))
+                else:
+                    conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
+
 
             elif cmd_key[0] == "/dir":
                 path = Path.cwd() / "CSNETWORK_MP" / "Server Directory"
@@ -90,36 +94,21 @@ def handle_client(conn, addr):
                         conn.send("No files found in the current directory.".encode(FORMAT))
                 else:
                     conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
+
         
             elif cmd_key[0] == "/get":
-                file_name = conn.recv(1024).decode()
-                file_size = int(conn.recv(1024).decode())
-                
+                path = Path.cwd() / "CSNETWORK_MP" / "Server Directory"
+                file_path = path / cmd_key[1]
                 try:
-                    open(file_name, "wb")
-
-                    progress_bar = tqdm(unit="B", unit_scale=True, unit_divisor=1024, total=file_size, desc=f"Downloading {file_name}")
-
-                    bytes_received = 0
-
-                    while bytes_received < file_size:
-
-                        #recieve in chunks
-                        data = conn.recv(1024)
-                        if not data:
-                            break
-                        file.write(data)
-                        bytes_received += len(data)
-
-                        progress_bar.update(len(data))
-                    
-                    progress_bar.close()
+                    with open(file_path, 'rb') as file:
+                        while chunk := file.read(1024):
+                            conn.send(chunk)
                 except FileNotFoundError:
-                    print("Error: File not Found in the server.")
-                    conn.send("Error: File not Found in the server.".encode(FORMAT))
-                except Exception:
-                    print("Error: An unexpected error occured.")
-                    conn.send("Error: An unexpected error occured.".encode(FORMAT))
+                    print("File not found.")
+                    conn.send(b"Error: File not found.")
+                finally:
+                    conn.send(b"EOF")
+                
                     
             print(f"{addr}: {msg}")  # Optional, remove in production for cleaner output
 
