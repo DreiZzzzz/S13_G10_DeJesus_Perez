@@ -25,7 +25,9 @@ def display_commands():
 
 def send_to_server(client, msg):
     try:
-        message = msg.encode(FORMAT)
+        message = msg
+        if isinstance(msg,bytes) == False:
+            message = msg.encode(FORMAT)
         msg_length = len(message)
         send_length = str(msg_length).encode(FORMAT)
         send_length += b' ' * (HEADER - len(send_length))
@@ -49,7 +51,7 @@ def main():
     client_send_filename = ""
     client_receive_filename = ""
 
-    os.chdir(r"C:\Users\ZiaZandre\Documents\GitHub\CSNETWK_MachineProject") # change before running 
+    os.chdir(r"C:\Users\perez\OneDrive\Desktop\CSNETWK_MachineProject-main") # change before running 
 
     from_path = Path.cwd() / "CSNETWORK_MP" / "Client Directory"
     if not from_path.exists():
@@ -116,14 +118,14 @@ def main():
 
                                 try:
                                     # Open and read the file content
-                                    with open(file_path, "r") as file:
+                                    with open(file_path, "rb") as file:
                                         data = file.read()
 
                                     # Create the message to send (filename + file data)
-                                    temp = f"{file_name}\n{data}"
-                                    print(temp) # remove after testing
-                                    # Send the data to the server
-                                    server_response = send_to_server(client, temp)  # Send the full data (filename + content)
+                                    prompt = prompt.encode(FORMAT)
+                                    prompt = prompt + b" " + data
+                                    
+                                    server_response = send_to_server(client, prompt)  # Send the full data (filename + content)
 
                                     if server_response is None:  # Server is unreachable
                                         is_server_active = False
@@ -171,15 +173,20 @@ def main():
                                 client = create_socket()  # Recreate the socket for future use
                                 print("Error: Server connection lost.")
                             else:
-                                while True:
-                                    data = client.recv(1024)
-                                    if data == b"EOF":  # End of file signal
-                                        break
-                                    if data.startswith(b"ERROR"):  # Handle errors from server
-                                        print(data.decode())
-                                        break
-                                    file.write(data)
-                                print(server_response)
+                                #print(server_response)
+                                data = client.recv(HEADER).decode(FORMAT)
+                                print(data)
+
+                                file_path = from_path / cmd_key[1]
+                                cmd_key[1], file_extension = os.path.splitext(cmd_key[1])
+                    
+                                if file_extension == ".txt":
+                                    with open(file_path, "w") as file:
+                                        file.write(data)
+                                else:
+                                    data = data.encode(FORMAT)
+                                    with open(file_path, "wb") as file:
+                                        file.write(data)
                         else:
                             print("Error: Command parameters do not match or are not allowed.")
                     else:
