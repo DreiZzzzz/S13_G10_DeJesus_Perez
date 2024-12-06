@@ -39,90 +39,97 @@ def send_to_server(client, msg):
 def main():
     is_server_active = False
     is_user_registered = False
-    print(IP_ADDRESS)
     client = create_socket()  # Create the socket initially
 
     input_server = ""
     input_port = -1
 
-    while True:
-        client_send_filename = ""
-        client_receive_filename = ""
+    client_send_filename = ""
+    client_receive_filename = ""
 
-        prompt = input("> ")
-        cmd_key = prompt.split()
-        server_response = ""
+    try:
+        while True:
+            server_response = ""
 
-        if cmd_key[0] == "/join":
-            if len(cmd_key) == 3:
-                input_server = cmd_key[1]  # a string
-                input_port = int(cmd_key[2])  # an int
-                address = (input_server, input_port)
+            prompt = input("> ").strip()
+            if not prompt:
+                print("Error: No command entered. Please try again.")
+                continue  # Skip this iteration and go back to prompting the user
+            cmd_key = prompt.split()
 
-            if input_port == PERMANENT_PORT and input_server == IP_ADDRESS and len(cmd_key) == 3 and is_server_active == False:
-                is_server_active = True
-                client.connect(address)
-                server_response = send_to_server(client, prompt)
-                print(server_response)
-            elif input_port == PERMANENT_PORT and input_server == IP_ADDRESS and len(cmd_key) == 3 and is_server_active == True:
-                print("Error: Connection to the Server is already active.")
-            elif (input_port != PERMANENT_PORT or input_server != IP_ADDRESS) and len(cmd_key) == 3:
-                print("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
-            else:
-                print("Error: Command parameters do not match or are not allowed.")
+            if cmd_key[0] == "/join":
+                if len(cmd_key) == 3:
+                    input_server = cmd_key[1]  # a string
+                    input_port = int(cmd_key[2])  # an int
+                    address = (input_server, input_port)
 
-        elif cmd_key[0] == "/leave":
-            if is_server_active:
-                server_response = send_to_server(client, prompt)
-                if server_response is None:  # Server is unreachable
-                    print("Error: Server connection lost.")
-                else:
+                if input_port == PERMANENT_PORT and input_server == IP_ADDRESS and len(cmd_key) == 3 and is_server_active == False:
+                    is_server_active = True
+                    client.connect(address)
+                    server_response = send_to_server(client, prompt)
                     print(server_response)
-                    if server_response == "Connection closed. Thank you!":
-                        is_user_registered = False
-                        is_server_active = False
-                client.close()  # Close the socket
-                client = create_socket()  # Recreate the socket for future use
-            else:
-                print("Error: Disconnection failed. Please connect to the server first.")
+                elif input_port == PERMANENT_PORT and input_server == IP_ADDRESS and len(cmd_key) == 3 and is_server_active == True:
+                    print("Error: Connection to the Server is already active.")
+                elif (input_port != PERMANENT_PORT or input_server != IP_ADDRESS) and len(cmd_key) == 3:
+                    print("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
+                else:
+                    print("Error: Command parameters do not match or are not allowed.")
 
-        elif cmd_key[0] in ["/store", "/dir", "/get"]:
-            if is_server_active:
-                if is_user_registered:
+            elif cmd_key[0] == "/leave":
+                if is_server_active:
                     server_response = send_to_server(client, prompt)
                     if server_response is None:  # Server is unreachable
-                        is_server_active = False
-                        client.close()  # Close the socket
-                        client = create_socket()  # Recreate the socket for future use
                         print("Error: Server connection lost.")
                     else:
                         print(server_response)
+                        if server_response == "Connection closed. Thank you!":
+                            is_user_registered = False
+                            is_server_active = False
+                    client.close()  # Close the socket
+                    client = create_socket()  # Recreate the socket for future use
                 else:
-                    print("Error: User is not yet registered.")
+                    print("Error: Disconnection failed. Please connect to the server first.")
+
+            elif cmd_key[0] in ["/store", "/dir", "/get"]:
+                if is_server_active:
+                    if is_user_registered:
+                        server_response = send_to_server(client, prompt)
+                        if server_response is None:  # Server is unreachable
+                            is_server_active = False
+                            client.close()  # Close the socket
+                            client = create_socket()  # Recreate the socket for future use
+                            print("Error: Server connection lost.")
+                        else:
+                            print(server_response)
+                    else:
+                        print("Error: User is not yet registered.")
+                else:
+                    print("Error: Please connect to the server first to use this command.")
+                    if cmd_key[0] in ["/store", "/get"] and len(cmd_key) != 2:
+                        print("Error: Command parameters do not match or are not allowed.")
+
+            elif cmd_key[0] == "/register":
+                if len(cmd_key) != 2:
+                    print("Error: Command parameters do not match or are not allowed.")
+                elif is_server_active:
+                    server_response = send_to_server(client, prompt)
+                    temp = server_response.split()
+                    if len(temp) == 2:
+                        is_user_registered = True
+                    print(server_response)
+                else:
+                    print("Error: Please connect to the server first to use this command.")
+
+            elif cmd_key[0] == "ayaw kona":
+                break
+
+            elif cmd_key[0] == "/?":
+                display_commands()
+
             else:
-                print("Error: Please connect to the server first to use this command.")
-
-        elif cmd_key[0] == "/register":
-            if len(cmd_key) != 2:
-                print("Error: Command parameters do not match or are not allowed.")
-            elif is_server_active:
-                server_response = send_to_server(client, prompt)
-                temp = server_response.split()
-                if len(temp) == 2:
-                    is_user_registered = True
-                print(server_response)
-            else:
-                print("Error: Please connect to the server first to use this command.")
-
-        elif cmd_key[0] == "/?":
-            display_commands()
-
-        elif cmd_key[0] == "/exit program":  # remove after testing
-            break  # exit loop
-
-        else:
-            print("Error: Command not found.")
-
+                print("Error: Command not found.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 print("\nCLIENT INTERFACE")
 print("> CLIENT HAS STARTED")
