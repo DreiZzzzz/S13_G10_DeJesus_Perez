@@ -4,19 +4,19 @@ HEADER = 512
 PERMANENT_PORT = 12345  # for checking
 FORMAT = 'utf-8'
 
-SERVER = socket.gethostbyname(socket.gethostname())  # for checking
+SERVER = "127.0.0.1"
 
 def create_socket():
     return socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 def display_commands():
     print("COMMAND LISTS")
-    print("(1) /join <server_ip_add> <port>")
-    print("(2) /leave")
-    print("(3) /register <handle>")
-    print("(4) /store <filename>")
-    print("(5) /dir")
-    print("(6) /get <filename>")
+    print("/join <server_ip_add> <port>")
+    print("/leave")
+    print("/register <handle>")
+    print("/store <filename>")
+    print("/dir")
+    print("/get <filename>")
 
 
 def send_to_server(client, msg):
@@ -35,15 +35,22 @@ def main():
     print(SERVER)
     client = create_socket()  # Create the socket initially
 
+    input_server = ""
+    input_port = -1
+
     while True:
+        client_send_filename = ""
+        client_receive_filename = ""
+
         prompt = input("> ")
         cmd_key = prompt.split()
         server_response = ""
 
         if cmd_key[0] == "/join" and is_server_active == False:
-            input_server = cmd_key[1]  # a string
-            input_port = int(cmd_key[2])  # an int
-            address = (input_server, input_port)
+            if len(cmd_key) == 3:
+                input_server = cmd_key[1]  # a string
+                input_port = int(cmd_key[2])  # an int
+                address = (input_server, input_port)
 
             if input_port == PERMANENT_PORT and input_server == SERVER and len(cmd_key) == 3:
                 is_server_active = True
@@ -81,6 +88,7 @@ def main():
         else:
             print("Error: Command not found.")
 
-# Call the main function to start the client-side interaction
+        #print("\n")
+
 print("\nCLIENT VIEW")
 main()

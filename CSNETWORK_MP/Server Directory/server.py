@@ -6,7 +6,7 @@ import tqdm
 
 HEADER = 512
 PORT = 12345
-SERVER = socket.gethostbyname(socket.gethostname())
+SERVER = "127.0.0.1"
 ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
 
@@ -30,20 +30,24 @@ def handle_client(conn, addr):
             if cmd_key[0] == "/join":
                 conn.send("Connection to the File Exchange Server is successful!".encode(FORMAT))
             elif cmd_key[0] == "/leave":
-                connected = False
-                conn.send("Connection closed. Thank you!".encode(FORMAT))
-                if current_client != "":
-                    list_client_names.remove(current_client)
+                if len(cmd_key) == 1:
+                    connected = False
+                    conn.send("Connection closed. Thank you!".encode(FORMAT))
+                    if current_client != "":
+                        list_client_names.remove(current_client)
+                else:
+                    conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
             elif cmd_key[0] == "/register":
-                # Check if cmd_key[1] is a valid name (non-empty)
-                if len(cmd_key) > 1 and cmd_key[1]:
+                if len(cmd_key) == 2 and cmd_key[1]:
                     temp_client_name = cmd_key[1]
                     if temp_client_name not in list_client_names:
                         current_client = temp_client_name
                         list_client_names.append(current_client)
-                        conn.send(f"Welcome {current_client}".encode(FORMAT))
+                        conn.send(f"Welcome {current_client}!".encode(FORMAT))
                     else:
                         conn.send("Error: Registration failed. Handle or alias already exists.".encode(FORMAT))
+                else:
+                    conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
             elif cmd_key[0] == "/store":
                 try:
                     # Open the file in binary read mode
@@ -70,18 +74,17 @@ def handle_client(conn, addr):
 
             elif cmd_key[0] == "/dir":
                 path = Path.cwd() / "CSNETWORK_MP" / "Server Directory"
-                print(f"Server current working directory: {path}")  # Debugging
 
                 files = list(path.glob("*"))  # Get all files
-                if files:
-                    print("Server Directory:")
-                    for file in files:
-                        print(file.name)
-                    conn.send("\n".join([file.name for file in files]).encode(FORMAT))  # Send file names to client
+                if len(cmd_key) == 1:
+                    if files:
+                        conn.send(("Server Directory\n" + "\n".join([file.name for file in files])).encode(FORMAT))
+                    else:
+                        print("No files found in the current directory.")
+                        conn.send("No files found in the current directory.".encode(FORMAT))
                 else:
-                    print("No files found in the current directory.")
-                    conn.send("No files found in the current directory.".encode(FORMAT))
-                
+                    conn.send("Error: Command parameters do not match or is not allowed.".encode(FORMAT))
+        
             elif cmd_key[0] == "/get":
                 file_name = conn.recv(1024).decode()
                 file_size = int(conn.recv(1024).decode())
@@ -111,6 +114,7 @@ def handle_client(conn, addr):
                 except Exception:
                     print("Error: An unexpected error occured.")
                     conn.send("Error: An unexpected error occured.".encode(FORMAT))
+                    
             print(f"{addr}: {msg}")  # Optional, remove in production for cleaner output
 
     conn.close()
@@ -118,12 +122,12 @@ def handle_client(conn, addr):
 
 def start():
     server.listen()
-    print(f"> SERVER HAS STARTED USING IP ADDRESS: {SERVER} ON PORT: {PORT}")
+    print(f"> SERVER HAS STARTED [IP ADDRESS: {SERVER} ON PORT: {PORT}]")
     while True:
         conn, addr = server.accept()
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
-        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}") # prints current active connection/s
+        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}\n")
 
 print("\nSERVER VIEW")
 start()
