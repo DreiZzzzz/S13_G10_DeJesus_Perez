@@ -1,3 +1,7 @@
+# De Jesus, Andrei Zarmin D. 
+# Perez, Patrick Hans A.
+
+
 import socket
 import threading
 import os
@@ -5,10 +9,12 @@ from pathlib import Path
 import tqdm
 
 HEADER = 512
-PORT = 12345
-SERVER = "127.0.0.1"
-ADDR = (SERVER, PORT)
 FORMAT = 'utf-8'
+
+IP_ADDRESS = "127.0.0.1"
+PORT = 12345
+ADDR = (IP_ADDRESS, PORT)
+
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
@@ -122,13 +128,13 @@ def handle_client(conn, addr):
 
 def start():
     server.listen()
-    print(f"> SERVER HAS STARTED [IP ADDRESS: {SERVER} ON PORT: {PORT}]")
+    print(f"> SERVER HAS STARTED [IP ADDRESS: {IP_ADDRESS} ON PORT: {PORT}]")
     while True:
         conn, addr = server.accept()
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
-        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}\n")
+        print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
 
-print("\nSERVER VIEW")
+print("\nSERVER INTERFACE")
 start()
         
