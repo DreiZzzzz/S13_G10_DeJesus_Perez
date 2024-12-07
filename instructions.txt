@@ -1,3 +1,5 @@
+Clone Repository using (git clone https://github.com/DreiZzzzz/S13_G10_DeJesus_Perez.git)
+
 Please use VSCODE and install python extensions.
 Run Server on VSCODE.
 
